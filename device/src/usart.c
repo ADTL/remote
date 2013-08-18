@@ -17,9 +17,18 @@ void usart_sendb(USART_TypeDef * USART, char byte) {
     while ((USART->SR & USART_SR_TXE) == 0);
     USART->DR = byte;
 }
+/*USARTx get byte */
+char usart_getb(USART_TypeDef * USART) {
+    while ((USART->SR & USART_SR_RXNE) == 0);
+    return USART->DR;
+}
 /*USART1 send byte */
 void ser1_sendb(unsigned char byte) {
     usart_sendb(USART1, byte);
+}
+/*USART1 get byte */
+unsigned char ser1_getb(void) {
+    return usart_getb(USART1);
 }
 /*USART1 setup */
 void usart1_setup(void) {
@@ -28,13 +37,14 @@ void usart1_setup(void) {
     /* Enable USART1 and GPIOB clock              */
     RCC_APB2PeriphClockCmd (RCC_APB2Periph_USART1, ENABLE);
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-    /* Configure USART1 Tx (PB6) as af            */
-    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_6;
+    /* Configure USART1 Tx (PB6) and Rx (PB7) as af            */
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_6 | GPIO_Pin_7;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
-    /* Setup AF fuctions for Tx, pin */
+    /* Setup AF fuctions for Tx, Rx pins */
     GPIO_PinAFConfig(GPIOB, GPIO_PinSource6, GPIO_AF_USART1);
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_USART1);
     /* USART1 configured as follow:
 	- BaudRate = 115200 baud
 	- Word Length = 8 Bits

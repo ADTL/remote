@@ -10,11 +10,13 @@
 #include "usart.h"
 #include "buttons.h"
 #include "lcd.h"
+#include "protocol.h"
+#include "proto.h"
 #include "xprintf.h"
 #include "test-img.h"
 #include "stm32f4xx_gpio.h"
 /* globals */
-int status = 0;
+volatile int status = 0;
 /* check status */
 void check_status(void) {
     if (GPIOA->IDR & GPIO_Pin_1) {
@@ -35,9 +37,20 @@ void sender(char * msg) {
 }
 /* main work function */
 void work(void) {
+    ProtoMsgIO inbox, outbox;
+    ProtoMlboxIO mailbox;
     unsigned short i, j;
+    unsigned char mailbox_num = 0;
+    ProtoIOMBox * mbox;
+    char in_message[3];
     /* setup serial console */
     usart1_setup();
+    /* setup proto */
+    mailbox.inbox = &inbox;
+    mailbox.outbox = &outbox;
+    mailbox_num = proto_create_mlbox_io(&mailbox);
+    proto_setup();
+    mbox = proto_srv_dat.mailboxes[mailbox_num];
     /* setup status */
     status_setup();
     /* setup button */
@@ -63,6 +76,23 @@ void work(void) {
     
     /* check status */
     check_status();
+    /* send ping */
+    inbox.message = &in_message;
+    mbox->outbox->header = 'C'; /* Command */
+    mbox->outbox->size = 0x00; /* 0 for ping request */
+    mbox->outbox_s = PROTO_IO_MBOX_READY; /* Box ready */
+    /* wait connection estabilished */
+    while (status == 0);
+    /* send ping message */
+    proto_send_msg(mailbox_num);
+    if (mbox->outbox_s == PROTO_IO_MBOX_COMPLETE)
+        LCD_String("Con", 36, 6, 1, WHITE, GLASSY);
+    else
+        LCD_String("Un", 36, 6, 1, RED, GLASSY);
+    if (proto_get_msg(mailbox_num) == P_COMPLETE)
+        LCD_String("OK", 36 + 3 * 7, 6, 1, GREEN, GLASSY);
+    else
+        LCD_String("ERR", 36 + 3 * 7, 6, 1, RED, GLASSY);
     /* infinity loop */
     while (1) {
         if (button_state.state[B_LGHT] == B_CLICK) {

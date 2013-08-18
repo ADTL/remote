@@ -45,7 +45,7 @@ print 'Connected'
 try:
     while 1:
         try:
-            line = ser.readline()
+            line = ser.read(3)
         except serial.serialutil.SerialException:
             ser.close()
             time.sleep(0.5)
@@ -55,10 +55,22 @@ try:
                     break
                 except serial.serialutil.SerialException:
                     time.sleep(2)
-        cmd = line.strip()
-        if cmd in commands:
-            current = commands[cmd]
-            current[0](*current[1])
+        if len(line) == 3:
+            if line[0] == 'C':
+                print 'Command'
+                if ord(line[1]) == 0x00 and ord(line[2]) == 0x00:
+                    print 'Device ping'
+                    ser.write('A')
+                    ser.write(chr(0x00))
+                    ser.write(chr(0x02))
+                    ser.write('OK')
+                    print 'Ansver to device'
+            else:
+                line += ser.readline()
+                cmd = line.strip()
+                if cmd in commands:
+                    current = commands[cmd]
+                    current[0](*current[1])
 except KeyboardInterrupt:
     ser.close()
     del am
