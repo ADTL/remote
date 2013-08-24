@@ -6,6 +6,7 @@
 * 2013
 *-----------------------------------------------------------------------------*/
 /* include headers */
+#include "misc.h"
 #include "stm32f4xx.h"
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_rcc.h"
@@ -32,6 +33,7 @@ unsigned char ser1_getb(void) {
 }
 /*USART1 setup */
 void usart1_setup(void) {
+    NVIC_InitTypeDef NVIC_InitStructure;
     GPIO_InitTypeDef  GPIO_InitStructure;
     USART_InitTypeDef USART_InitStructure;
     /* Enable USART1 and GPIOB clock              */
@@ -66,6 +68,14 @@ void usart1_setup(void) {
     USART_InitStructure.USART_Mode                = USART_Mode_Rx | USART_Mode_Tx;
     USART_Init(USART1, &USART_InitStructure);
     USART_Cmd(USART1, ENABLE);
+    /* enable usart interrupts */
+    USART_ITConfig(USART1, USART_IT_TC, ENABLE);
+    USART_ClearITPendingBit(USART1, USART_IT_TC);
+    NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
     /* preinit xprintf lib
      * route xprintf output function to ser1_sendb function
      */

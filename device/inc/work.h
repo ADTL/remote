@@ -7,3 +7,5 @@
 *-----------------------------------------------------------------------------*/ 
 /* main work function */
 void work(void);
+/* check status */
+void check_status(void);

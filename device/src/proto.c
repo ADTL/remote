@@ -5,9 +5,9 @@
 * Project: STM32F4D
 * 2013
 *-----------------------------------------------------------------------------*/ 
-#include "misc.h"
 #include "proto.h"
 #include "stm32f4xx.h"
+#include "stm32f4xx_gpio.h"
 #include "stm32f4xx_usart.h"
 #include "usart.h"
 /* main state struct */
@@ -28,16 +28,17 @@ ProtoIOMsg proto_service_in_m,
 ProtoIOMBox proto_service_mb,
     proto_system_mb,
     proto_common_mb;
+ProtoSrvStatus proto_s_inbox,
+    proto_s_outbox;
 /* proto setup */
 void proto_setup(void) {
-    NVIC_InitTypeDef NVIC_InitStructure;
     /* create basics mail boxes */
-    proto_service_in_m.message = &proto_service_in_b;
-    proto_service_out_m.message = &proto_service_out_b;
-    proto_system_in_m.message = &proto_system_in_b;
-    proto_system_out_m.message = &proto_system_out_b;
-    proto_common_in_m.message = &proto_common_in_b;
-    proto_common_out_m.message = &proto_common_out_b;
+    proto_service_in_m.message = proto_service_in_b;
+    proto_service_out_m.message = proto_service_out_b;
+    proto_system_in_m.message = proto_system_in_b;
+    proto_system_out_m.message = proto_system_out_b;
+    proto_common_in_m.message = proto_common_in_b;
+    proto_common_out_m.message = proto_common_out_b;
     
     proto_service_mb.inbox = &proto_service_in_m;
     proto_service_mb.outbox = &proto_service_out_m;
@@ -49,57 +50,82 @@ void proto_setup(void) {
     proto_srv_dat.mailboxes[PROTO_MBOX_ADR_SERVICE] = &proto_service_mb;
     proto_srv_dat.mailboxes[PROTO_MBOX_ADR_SYSTEM] = &proto_system_mb;
     proto_srv_dat.mailboxes[PROTO_MBOX_ADR_COMMON] = &proto_common_mb;
-    /* enable usart interrupts */
-    /*NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
-    USART_ITConfig(USART1, USART_IT_TXE, ENABLE);*/
+    proto_srv_dat.s_inbox = &proto_s_inbox;
+    proto_srv_dat.s_outbox = &proto_s_outbox;
 }
 /* proto usart1 Tx handler */
 void usart1_handler(void) {
+    if (USART_GetITStatus(USART1, USART_IT_TC) != RESET) {
+        proto_send_sm();
+        USART_ClearITPendingBit(USART1, USART_IT_TC);
+    }
 }
 /* proto send message */
 void proto_send_msg(unsigned char mbox_num) {
-    ProtoIOMBox * mbox = proto_srv_dat.mailboxes[mbox_num];
-    unsigned char byte_cnt;
-    if (mbox->outbox_s == PROTO_IO_MBOX_READY) {
-        if (mbox->outbox->size == 0 && mbox->outbox->header != 'C')
-            mbox->outbox_s = PROTO_IO_MBOX_ERROR;
-        else if (mbox->outbox->header != 'Q' && mbox->outbox->header != 'A' && mbox->outbox->header != 'C')
-            mbox->outbox_s = PROTO_IO_MBOX_ERROR;
-        else {
-            mbox->outbox_s = PROTO_IO_MBOX_SEND;
-            proto_srv_dat.outbox.header = mbox->outbox->header;
-            proto_srv_dat.outbox.address = mbox_num;
-            proto_srv_dat.outbox.status = PROTO_SRV_STAT_READY;
-            proto_send_sm();
-            proto_send_sm();
-            proto_send_sm();
-            for (byte_cnt = 0; byte_cnt++ < mbox->outbox->size; ) {
-                ser1_sendb(mbox->outbox->message[byte_cnt]);
-            }
-            mbox->outbox_s = PROTO_IO_MBOX_COMPLETE;
-        }
-    }
-    else {
-        mbox->outbox_s = PROTO_IO_MBOX_ERROR;
-    }
+    proto_srv_dat.s_outbox->address = mbox_num;
+    proto_srv_dat.s_outbox->status = PROTO_SRV_STAT_READY;
+    proto_send_sm();
+    /*proto_send_sm();
+    proto_send_sm();
+    while (proto_srv_dat.s_outbox->status == PROTO_SRV_STAT_MESSAGE)
+        proto_send_sm();*/
 }
 /* proto send state machine */
 void proto_send_sm(void) {
-    switch(proto_srv_dat.outbox.status) {
+    ProtoSrvStatus * outbox = proto_srv_dat.s_outbox;
+    ProtoIOMBox * mbox = proto_srv_dat.mailboxes[outbox->address];
+    
+    switch(outbox->status) {
         case PROTO_SRV_STAT_READY:
-            ser1_sendb(proto_srv_dat.outbox.header);
-            proto_srv_dat.outbox.status = PROTO_SRV_STAT_HEADER;
-            break;
+            outbox->header = mbox->outbox->header;
+            if (mbox->outbox_s != PROTO_IO_MBOX_READY) {
+                outbox->status = PROTO_SRV_STAT_ERROR;
+                proto_send_sm();
+                break;
+            }
+            if (mbox->outbox->header != 'Q' && mbox->outbox->header != 'A' && mbox->outbox->header != 'C') {
+                mbox->outbox_s = PROTO_IO_MBOX_ERROR;
+                proto_send_sm();
+                break;
+            }
+            mbox->outbox_s = PROTO_IO_MBOX_SEND;
+            GPIOD->ODR |= GPIO_Pin_14;
+            outbox->status = PROTO_SRV_STAT_HEADER;
         case PROTO_SRV_STAT_HEADER:
-            ser1_sendb(proto_srv_dat.outbox.address);
-            proto_srv_dat.outbox.status = PROTO_SRV_STAT_ADDRESS;
+            ser1_sendb(outbox->header);
+            outbox->status = PROTO_SRV_STAT_ADDRESS;
             break;
         case PROTO_SRV_STAT_ADDRESS:
-            ser1_sendb(proto_srv_dat.mailboxes[proto_srv_dat.outbox.address]->outbox->size);
+            ser1_sendb(outbox->address);
+            outbox->status = PROTO_SRV_STAT_SIZE;
+            break;
+        case PROTO_SRV_STAT_SIZE:
+            outbox->size = mbox->outbox->size;
+            ser1_sendb(outbox->size);
+            if (outbox->size > 0) {
+                outbox->counter = 0;
+                outbox->status = PROTO_SRV_STAT_MESSAGE;
+            }
+            else {
+                outbox->status = PROTO_SRV_STAT_COMPLETE;
+            }
+            break;
+        case PROTO_SRV_STAT_MESSAGE:
+            ser1_sendb(mbox->outbox->message[outbox->counter++]);
+            if (outbox->counter >= outbox->size) {
+                outbox->status = PROTO_SRV_STAT_COMPLETE;
+            }
+            break;
+        case PROTO_SRV_STAT_COMPLETE:
+            outbox->status = PROTO_SRV_STAT_READY;
+            mbox->outbox_s = PROTO_IO_MBOX_COMPLETE;
+            GPIOD->ODR &= ~GPIO_Pin_14;
+            break;
+        case PROTO_SRV_STAT_ERROR:
+            mbox->outbox_s = PROTO_IO_MBOX_ERROR;
+            outbox->header = 'N';
+            outbox->status = PROTO_SRV_STAT_READY;
+            GPIOD->ODR &= ~GPIO_Pin_14;
             break;
         default:
             break;

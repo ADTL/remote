@@ -8,6 +8,7 @@
 /* includes */
 #include "stm32f4xx.h"
 #include "usart.h"
+#include "status.h"
 #include "buttons.h"
 #include "lcd.h"
 #include "protocol.h"
@@ -31,9 +32,18 @@ void check_status(void) {
     }
 }
 /* sender */
-void sender(char * msg) {
-    if (status)
-        xputs(msg);
+void sender(char msg) {
+    volatile ProtoIOMBox * mbox;
+    if (status) {
+        mbox = proto_srv_dat.mailboxes[PROTO_MBOX_ADR_COMMON];
+        mbox->outbox->header = 'C'; /* Command */
+        mbox->outbox->size = 0x01; /* 0 for ping request */
+        mbox->outbox->message[0] = msg; /* short message */
+        mbox->outbox_s = PROTO_IO_MBOX_READY; /* Box ready */
+        proto_send_msg(PROTO_MBOX_ADR_COMMON);
+        /* wait to send message */
+        while (mbox->outbox_s <= PROTO_IO_MBOX_SEND);
+    }
 }
 /* main work function */
 void work(void) {
@@ -41,8 +51,10 @@ void work(void) {
     ProtoMlboxIO mailbox;
     unsigned short i, j;
     unsigned char mailbox_num = 0;
-    ProtoIOMBox * mbox;
-    char in_message[3];
+    volatile ProtoIOMBox * mbox;
+    unsigned char in_message[3];
+    /* setup status */
+    status_setup();
     /* setup serial console */
     usart1_setup();
     /* setup proto */
@@ -51,8 +63,6 @@ void work(void) {
     mailbox_num = proto_create_mlbox_io(&mailbox);
     proto_setup();
     mbox = proto_srv_dat.mailboxes[mailbox_num];
-    /* setup status */
-    status_setup();
     /* setup button */
     buttons_setup();
     /* lcd setup */
@@ -77,7 +87,7 @@ void work(void) {
     /* check status */
     check_status();
     /* send ping */
-    inbox.message = &in_message;
+    inbox.message = in_message;
     mbox->outbox->header = 'C'; /* Command */
     mbox->outbox->size = 0x00; /* 0 for ping request */
     mbox->outbox_s = PROTO_IO_MBOX_READY; /* Box ready */
@@ -85,6 +95,8 @@ void work(void) {
     while (status == 0);
     /* send ping message */
     proto_send_msg(mailbox_num);
+    /* wait to send message */
+    while (mbox->outbox_s <= PROTO_IO_MBOX_SEND);
     if (mbox->outbox_s == PROTO_IO_MBOX_COMPLETE)
         LCD_String("Con", 36, 6, 1, WHITE, GLASSY);
     else
@@ -96,27 +108,27 @@ void work(void) {
     /* infinity loop */
     while (1) {
         if (button_state.state[B_LGHT] == B_CLICK) {
-            sender("vol+\n");
+            sender('+');
             button_state.state[B_LGHT] = B_RELEASE;
         }
         if (button_state.state[B_MOD] == B_CLICK) {
-            sender("mute\n");
+            sender('m');
             button_state.state[B_MOD] = B_RELEASE;
         }
         if (button_state.state[B_SET] == B_CLICK) {
-            sender("vol-\n");
+            sender('-');
             button_state.state[B_SET] = B_RELEASE;
         }
         if (button_state.state[B_UP] == B_CLICK) {
-            sender("prev\n");
+            sender('<');
             button_state.state[B_UP] = B_RELEASE;
         }
         if (button_state.state[B_SU] == B_CLICK) {
-            sender("play\n");
+            sender('p');
             button_state.state[B_SU] = B_RELEASE;
         }
         if (button_state.state[B_DWN] == B_CLICK) {
-            sender("next\n");
+            sender('>');
             button_state.state[B_DWN] = B_RELEASE;
         }
     }

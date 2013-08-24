@@ -32,12 +32,12 @@ bus = dbus.SessionBus()
 am = bus.get_object('org.kde.amarok', '/Player')
 
 commands = {
-            'play': [am.PlayPause, []],
-            'next': [am.Next, []],
-            'prev': [am.Prev, []],
-            'mute': [am.Mute, []],
-            'vol+': [am.VolumeUp, [1,]],
-            'vol-': [am.VolumeDown, [1,]]
+            'p': [am.PlayPause, []],
+            '>': [am.Next, []],
+            '<': [am.Prev, []],
+            'm': [am.Mute, []],
+            '+': [am.VolumeUp, [1,]],
+            '-': [am.VolumeDown, [1,]]
             }
 
 print 'Connected'
@@ -45,7 +45,7 @@ print 'Connected'
 try:
     while 1:
         try:
-            line = ser.read(3)
+            line = ser.read(1)
         except serial.serialutil.SerialException:
             ser.close()
             time.sleep(0.5)
@@ -55,22 +55,25 @@ try:
                     break
                 except serial.serialutil.SerialException:
                     time.sleep(2)
-        if len(line) == 3:
+        if len(line) == 1:
             if line[0] == 'C':
                 print 'Command'
-                if ord(line[1]) == 0x00 and ord(line[2]) == 0x00:
-                    print 'Device ping'
-                    ser.write('A')
-                    ser.write(chr(0x00))
-                    ser.write(chr(0x02))
-                    ser.write('OK')
-                    print 'Ansver to device'
-            else:
-                line += ser.readline()
-                cmd = line.strip()
-                if cmd in commands:
-                    current = commands[cmd]
-                    current[0](*current[1])
+                line += ser.read(2)
+                if len(line) == 3:
+                    print "0x%02x 0x%02x 0x%02x" % (ord(line[0]), ord(line[1]), ord(line[2]))
+                    if ord(line[1]) == 0x00 and ord(line[2]) == 0x00:
+                        print 'Device ping'
+                        ser.write('A')
+                        ser.write(chr(0x00))
+                        ser.write(chr(0x02))
+                        ser.write('OK')
+                        print 'Ansver to device'
+                    if ord(line[1]) == 0x02:
+                        mlen = ord(line[2])
+                        message = ser.read(mlen)
+                        if message in commands:
+                            current = commands[message]
+                            current[0](*current[1])
 except KeyboardInterrupt:
     ser.close()
     del am

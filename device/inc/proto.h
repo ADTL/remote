@@ -48,13 +48,14 @@ typedef struct {
     unsigned char header;
     unsigned char address;
     unsigned char counter;
+    unsigned char size;
     unsigned char status;
 } ProtoSrvStatus;
 /* internal(service) state machine stack */
 typedef struct {
     ProtoIOMBox * mailboxes[PROTO_MBOX_NUM];
-    ProtoSrvStatus inbox;
-    ProtoSrvStatus outbox;
+    ProtoSrvStatus * s_inbox;
+    ProtoSrvStatus * s_outbox;
 } ProtoSrvDat;
 /* main state struct */
 extern volatile ProtoSrvDat proto_srv_dat;
@@ -64,3 +65,5 @@ void proto_setup(void);
 void proto_send_msg(unsigned char mbox_num);
 /* proto send state machine */
 void proto_send_sm(void);
+/* proto usart1 Tx handler */
+void usart1_handler(void);

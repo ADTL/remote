@@ -4,14 +4,13 @@
 #include "stm32f4xx_tim.h"
 #include "misc.h"
 #include "buttons.h"
-#include "xprintf.h"
 
 volatile ButtonsState button_state;
 /* Buttons events */
 void buttons_event(void) {
     uint8_t button;
     for (button = 0; button <= B_MOD; button++) {
-	if (!(BUT_PORT->IDR & (1 << button + 2))) {
+	if (!(BUT_PORT->IDR & (1 << (button + 2)))) {
 	    button_state.counter[button]++;
 	}
 	else {
@@ -53,8 +52,6 @@ void buttons_setup(void) {
     
     TIM_ITConfig(TIM6, TIM_IT_Update, ENABLE);
     TIM_Cmd(TIM6, ENABLE);
-    
-    xputs("Buttons enable\r\n");
 }
 /* Button event timer */
 void tim6_dac_handler(void) {

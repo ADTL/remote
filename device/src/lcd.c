@@ -359,7 +359,6 @@ void LCD_SPI_Setup(void) {
     /* Configure ports */
     GPIO_InitTypeDef GPIO_InitStructure;
     SPI_InitTypeDef  SPI_InitStructure;
-    char dummyread;
     /* Enable GPIOB, SPI2 clock */
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
@@ -388,10 +387,6 @@ void LCD_SPI_Setup(void) {
     
     /* Enable SPIx  */
     SPI_Cmd(LCD_SPI, ENABLE);
-
-    /* drain SPI */
-    while (SPI_I2S_GetFlagStatus(LCD_SPI, SPI_I2S_FLAG_TXE) == RESET) { ; }
-    dummyread = SPI_I2S_ReceiveData(LCD_SPI);
 }
 /* LCD Setup */
 void LCD_Setup(void) {

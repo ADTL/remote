@@ -44,8 +44,15 @@ enum speed_setting { INTERFACE_SLOW, INTERFACE_FAST };
 void LCD_Setup(void);
 /* Delay in ms */	
 void _delay_ms(unsigned short delay);
+/* Send i/o data to LCD */
+void LCD_Send(unsigned char data);
 /* Change LCD contrast */
 void LCD_Contrast(unsigned char contrast);
+/* Select draw window */
+void LCD_Window(unsigned char xstart, unsigned char ystart,
+                unsigned char xend, unsigned char yend);
+/* Select cursor position */
+void LCD_Cursor(unsigned char row, unsigned char col);
 /* Clear LCD */
 void LCD_Clear(unsigned short col);
 /* Draw pixel */
