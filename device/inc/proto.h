@@ -13,19 +13,23 @@
 #define PROTO_IO_MSG_HEADER_QUEST 'Q'
 #define PROTO_IO_MSG_HEADER_ANSVER 'A'
 /* status message */
-#define PROTO_IO_MBOX_NOTHING 0
-#define PROTO_IO_MBOX_READY 1
-#define PROTO_IO_MBOX_SEND 2
-#define PROTO_IO_MBOX_COMPLETE 3
-#define PROTO_IO_MBOX_ERROR 4
+enum PROTO_IO_MBOX {
+    PROTO_IO_MBOX_NOTHING,
+    PROTO_IO_MBOX_READY,
+    PROTO_IO_MBOX_SEND,
+    PROTO_IO_MBOX_COMPLETE,
+    PROTO_IO_MBOX_ERROR
+};
 /* status state machine */
-#define PROTO_SRV_STAT_READY 0
-#define PROTO_SRV_STAT_HEADER 1
-#define PROTO_SRV_STAT_ADDRESS 2
-#define PROTO_SRV_STAT_SIZE 3
-#define PROTO_SRV_STAT_MESSAGE 4
-#define PROTO_SRV_STAT_COMPLETE 5
-#define PROTO_SRV_STAT_ERROR 6
+enum PROTO_SRV_STAT {
+    PROTO_SRV_STAT_READY,
+    PROTO_SRV_STAT_HEADER,
+    PROTO_SRV_STAT_ADDRESS,
+    PROTO_SRV_STAT_SIZE,
+    PROTO_SRV_STAT_MESSAGE,
+    PROTO_SRV_STAT_COMPLETE,
+    PROTO_SRV_STAT_ERROR
+};
 /* addresses for system needed */
 #define PROTO_MBOX_ADR_SERVICE 0
 #define PROTO_MBOX_ADR_SYSTEM 1
@@ -63,7 +67,11 @@ extern volatile ProtoSrvDat proto_srv_dat;
 void proto_setup(void);
 /* proto send message */
 void proto_send_msg(unsigned char mbox_num);
+/* proto get message */
+void proto_get_msg(unsigned char mbox_num);
 /* proto send state machine */
 void proto_send_sm(void);
+/* proto get state machine */
+void proto_get_sm(void);
 /* proto usart1 Tx handler */
 void usart1_handler(void);

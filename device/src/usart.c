@@ -70,7 +70,9 @@ void usart1_setup(void) {
     USART_Cmd(USART1, ENABLE);
     /* enable usart interrupts */
     USART_ITConfig(USART1, USART_IT_TC, ENABLE);
+    USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
     USART_ClearITPendingBit(USART1, USART_IT_TC);
+    USART_ClearITPendingBit(USART1, USART_IT_RXNE);
     NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;

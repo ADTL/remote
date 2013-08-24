@@ -11,7 +11,7 @@
 #include "status.h"
 #include "buttons.h"
 #include "lcd.h"
-#include "protocol.h"
+//#include "protocol.h"
 #include "proto.h"
 #include "xprintf.h"
 #include "test-img.h"
@@ -47,20 +47,14 @@ void sender(char msg) {
 }
 /* main work function */
 void work(void) {
-    ProtoMsgIO inbox, outbox;
-    ProtoMlboxIO mailbox;
     unsigned short i, j;
     unsigned char mailbox_num = 0;
     volatile ProtoIOMBox * mbox;
-    unsigned char in_message[3];
     /* setup status */
     status_setup();
     /* setup serial console */
     usart1_setup();
     /* setup proto */
-    mailbox.inbox = &inbox;
-    mailbox.outbox = &outbox;
-    mailbox_num = proto_create_mlbox_io(&mailbox);
     proto_setup();
     mbox = proto_srv_dat.mailboxes[mailbox_num];
     /* setup button */
@@ -87,10 +81,11 @@ void work(void) {
     /* check status */
     check_status();
     /* send ping */
-    inbox.message = in_message;
     mbox->outbox->header = 'C'; /* Command */
     mbox->outbox->size = 0x00; /* 0 for ping request */
     mbox->outbox_s = PROTO_IO_MBOX_READY; /* Box ready */
+    mbox->inbox->size = 64; /* buffer len for control */
+    mbox->inbox_s = PROTO_IO_MBOX_READY; /* Box ready */
     /* wait connection estabilished */
     while (status == 0);
     /* send ping message */
@@ -101,8 +96,15 @@ void work(void) {
         LCD_String("Con", 36, 6, 1, WHITE, GLASSY);
     else
         LCD_String("Un", 36, 6, 1, RED, GLASSY);
-    if (proto_get_msg(mailbox_num) == P_COMPLETE)
+    /* get ping message */
+    proto_get_msg(mailbox_num);
+    /* wait to get message */
+    while (mbox->inbox_s <= PROTO_IO_MBOX_SEND);
+    if (mbox->inbox_s == PROTO_IO_MBOX_COMPLETE) {
         LCD_String("OK", 36 + 3 * 7, 6, 1, GREEN, GLASSY);
+        for (i = 0; i < mbox->inbox->size; i++)
+            LCD_Char(mbox->inbox->message[i], 70 + i * 6, 6, 1, WHITE, GLASSY);
+    }
     else
         LCD_String("ERR", 36 + 3 * 7, 6, 1, RED, GLASSY);
     /* infinity loop */

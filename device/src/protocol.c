@@ -35,7 +35,7 @@ unsigned char proto_create_mlbox_io(ProtoMlboxIO * proto_mlbox_io) {
     }
 }*/
 /* get message */
-unsigned char proto_get_msg(unsigned char mlbox_num) {
+/*unsigned char proto_get_msg(unsigned char mlbox_num) {
     ProtoMsgIO * inbox = a_proto_mlbox_io[mlbox_num]->inbox;
     unsigned char byte_cnt, raw_data;
     raw_data = ser1_getb();
@@ -53,4 +53,4 @@ unsigned char proto_get_msg(unsigned char mlbox_num) {
     else {
         return P_ERROR;
     }
-}
+}*/

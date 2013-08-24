@@ -66,7 +66,8 @@ try:
                         ser.write('A')
                         ser.write(chr(0x00))
                         ser.write(chr(0x02))
-                        ser.write('OK')
+                        ser.write(chr(ord('O')))
+                        ser.write(chr(ord('K')))
                         print 'Ansver to device'
                     if ord(line[1]) == 0x02:
                         mlen = ord(line[2])

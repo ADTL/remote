@@ -27,4 +27,4 @@ unsigned char proto_create_mlbox_io(ProtoMlboxIO * proto_mlbox_io);
 /* send message */
 // unsigned char proto_send_msg(unsigned char mlbox_num);
 /* get message */
-unsigned char proto_get_msg(unsigned char mlbox_num);
+//unsigned char proto_get_msg(unsigned char mlbox_num);
