@@ -97,7 +97,8 @@ void work(void) {
     else
         LCD_String("Un", 36, 6, 1, RED, GLASSY);
     /* get ping message */
-    proto_get_msg(mailbox_num);
+    /* FIXME wtf? this not work or work parity */
+    //proto_get_msg(mailbox_num);
     /* wait to get message */
     while (mbox->inbox_s <= PROTO_IO_MBOX_SEND);
     if (mbox->inbox_s == PROTO_IO_MBOX_COMPLETE) {

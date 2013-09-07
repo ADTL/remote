@@ -148,7 +148,7 @@ void proto_get_sm(void) {
         case PROTO_SRV_STAT_HEADER:
             inbox->header = ser1_getb();
             if (inbox->header != 'Q' && inbox->header != 'A' && inbox->header != 'C') {
-                inbox->status = PROTO_SRV_STAT_ERROR;
+                inbox->status = PROTO_SRV_STAT_ERROR_ADDR;
                 proto_get_sm();
             }
             else
@@ -157,7 +157,7 @@ void proto_get_sm(void) {
         case PROTO_SRV_STAT_ADDRESS:
             inbox->address = ser1_getb();
             if (inbox->address >= PROTO_MBOX_NUM) {
-                inbox->status = PROTO_SRV_STAT_ERROR;
+                inbox->status = PROTO_SRV_STAT_ERROR_ADDR;
                 proto_get_sm();
             }
             else
@@ -194,6 +194,7 @@ void proto_get_sm(void) {
             break;
         case PROTO_SRV_STAT_ERROR:
             mbox->inbox_s = PROTO_IO_MBOX_ERROR;
+        case PROTO_SRV_STAT_ERROR_ADDR:
             inbox->header = 'N';
             inbox->status = PROTO_SRV_STAT_READY;
             GPIOD->ODR &= ~GPIO_Pin_12;
